@@ -5,6 +5,10 @@ use std::ops::{Index, IndexMut};
 /// Trait for numeric types used in geometric computations.
 pub trait Scalar: Float + FromPrimitive + Send + Sync + Debug + 'static {}
 
+// Blanket implementations for common float types
+impl Scalar for f32 {}
+impl Scalar for f64 {}
+
 /// A point in d-dimensional euclidean space.
 ///
 /// This trait allows the WPSD to work with various point representations.

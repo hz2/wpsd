@@ -55,11 +55,11 @@ impl<P: Point> SplitTree<P> {
     ///
     /// Time complexity: O(n log n) where n is the number of points.
     pub fn new(points: Vec<P>) -> Self {
-        assert(!points.is_empty(), "Point set must not be empty");
+        assert!(!points.is_empty(), "Point set must not be empty");
 
-        let indices = (0..points.len()).collect();
+        let indices: Vec<usize> = (0..points.len()).collect();
         let bbox = BoundingBox::from_points(&points);
-        let root = Self::build_tree(&points, &indices, bbox, 0);
+        let root = Self::build_tree(&points, indices, bbox, 0);
 
         Self { root, points }
     }
@@ -120,7 +120,7 @@ impl<P: Point> SplitTree<P> {
 
         // create bounding boxes for children
         let left_bbox = if !left_indices.is_empty() {
-            BoundingBox::from_points(&left_indices.iter().map(|&i| &points[i]).collect::<Vec<_>>())
+            BoundingBox::from_points(&left_indices.iter().map(|&i| points[i].clone()).collect::<Vec<_>>())
         } else {
             bbox.clone()
         };
@@ -128,7 +128,7 @@ impl<P: Point> SplitTree<P> {
             BoundingBox::from_points(
                 &right_indices
                     .iter()
-                    .map(|&i| &points[i])
+                    .map(|&i| points[i].clone())
                     .collect::<Vec<_>>(),
             )
         } else {

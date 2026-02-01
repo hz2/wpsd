@@ -1,7 +1,22 @@
 [package]
 name = "wpsd"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+authors = ["Jason Devers <dev.json2@gmail.com>"]
+description = "Well-Separated Pair Decomposition (WSPD) with split trees for d-dimensional point sets"
+license = "MIT"
+repository = "https://github.com/hz2/wpsd"
+homepage = "https://github.com/hz2/wpsd"
+documentation = "https://docs.rs/wpsd"
+readme = "README.md"
+keywords = [
+    "geometry",
+    "spatial",
+    "algorithm",
+    "tree",
+    "computational-geometry",
+]
+categories = ["algorithms", "data-structures", "science"]
 
 [dependencies]
 num-traits = "0.2"
