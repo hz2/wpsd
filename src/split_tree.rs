@@ -120,7 +120,12 @@ impl<P: Point> SplitTree<P> {
 
         // create bounding boxes for children
         let left_bbox = if !left_indices.is_empty() {
-            BoundingBox::from_points(&left_indices.iter().map(|&i| points[i].clone()).collect::<Vec<_>>())
+            BoundingBox::from_points(
+                &left_indices
+                    .iter()
+                    .map(|&i| points[i].clone())
+                    .collect::<Vec<_>>(),
+            )
         } else {
             bbox.clone()
         };
