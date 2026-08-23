@@ -1,6 +1,6 @@
 [package]
 name = "wpsd"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = ["Jason Devers <dev.json2@gmail.com>"]
 description = "Well-Separated Pair Decomposition (WSPD) with split trees for d-dimensional point sets"
