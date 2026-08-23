@@ -19,4 +19,5 @@ mod split_tree;
 mod wspd;
 
 pub use point::{Point, Point2D, Point3D, Scalar, VecPoint};
+pub use split_tree::{SplitTree, SplitTreeNode};
 pub use wspd::{WSPDBuilder, WSPDStats, WellSeparatedPair, WSPD};
