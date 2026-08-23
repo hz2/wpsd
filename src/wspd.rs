@@ -74,7 +74,7 @@ impl<P: Point> WSPD<P> {
         );
 
         let tree = SplitTree::new(points);
-        let pairs = Self::compute_pairs(&tree.root, &tree.root, separation);
+        let pairs = Self::collect_pairs(&tree.root, separation);
 
         Self {
             tree,
@@ -119,22 +119,39 @@ impl<P: Point> WSPD<P> {
         }
     }
 
-    /// Computes well-separated pairs recursively.
-    fn compute_pairs(
+    /// Computes well-separated pairs for a subtree.
+    ///
+    /// Recurses into each child independently to collect pairs *within* each
+    /// child's subtree, then finds the cross pairs *between* the two
+    /// children exactly once. Calling `find_well_separated(node.left,
+    /// node.right, s)` from both sides (e.g. by starting from `(root,
+    /// root)`) would visit every cross pair twice, once per traversal
+    /// order, so each pair of siblings is only ever compared here.
+    fn collect_pairs(node: &Arc<SplitTreeNode<P>>, s: P::Scalar) -> Vec<WellSeparatedPair<P>> {
+        if node.is_leaf() {
+            return Vec::new();
+        }
+
+        let mut pairs = Vec::new();
+        if let Some(left) = &node.left {
+            pairs.extend(Self::collect_pairs(left, s));
+        }
+        if let Some(right) = &node.right {
+            pairs.extend(Self::collect_pairs(right, s));
+        }
+        if let (Some(left), Some(right)) = (&node.left, &node.right) {
+            pairs.extend(Self::find_well_separated(left, right, s));
+        }
+        pairs
+    }
+
+    /// Finds well-separated pairs between two disjoint subtrees.
+    fn find_well_separated(
         u: &Arc<SplitTreeNode<P>>,
         v: &Arc<SplitTreeNode<P>>,
         s: P::Scalar,
     ) -> Vec<WellSeparatedPair<P>> {
         let mut pairs = Vec::new();
-
-        // if both are leaves with the same point, skip
-        if u.is_leaf() && v.is_leaf() {
-            if let (Some(u_idx), Some(v_idx)) = (u.representative, v.representative) {
-                if u_idx == v_idx {
-                    return pairs;
-                }
-            }
-        }
 
         // check if u and v are well-separated
         if are_well_separated(&u.bbox, &v.bbox, s) {
@@ -159,18 +176,18 @@ impl<P: Point> WSPD<P> {
         if split_u {
             // split u and recurse on its children with v
             if let Some(left) = &u.left {
-                pairs.extend(Self::compute_pairs(left, v, s));
+                pairs.extend(Self::find_well_separated(left, v, s));
             }
             if let Some(right) = &u.right {
-                pairs.extend(Self::compute_pairs(right, v, s));
+                pairs.extend(Self::find_well_separated(right, v, s));
             }
         } else {
             // split v and recurse on its children with u
             if let Some(left) = &v.left {
-                pairs.extend(Self::compute_pairs(u, left, s));
+                pairs.extend(Self::find_well_separated(u, left, s));
             }
             if let Some(right) = &v.right {
-                pairs.extend(Self::compute_pairs(u, right, s));
+                pairs.extend(Self::find_well_separated(u, right, s));
             }
         }
 
@@ -202,7 +219,8 @@ pub struct WSPDStats {
     pub num_points: usize,
     /// Number of well-separated pairs
     pub num_pairs: usize,
-    /// Total number of point pairs represented by the WSPD (may be > expected due to overlap)
+    /// Total number of point pairs represented by the WSPD. Should always equal
+    /// `expected_pairs`, since a correct WSPD covers every point pair exactly once.
     pub total_point_pairs: usize,
     /// Expected number of point pairs (n choose 2)
     pub expected_pairs: usize,
@@ -222,7 +240,7 @@ impl WSPDStats {
         println!("\tExpected point pairs: {}", self.expected_pairs);
         println!(
             "\tCompression Ratio: {:.2}x",
-            self.expected_pairs as f64 / self.total_point_pairs as f64
+            self.expected_pairs as f64 / self.num_pairs as f64
         );
         println!("\tTree Nodes: {}", self.tree_nodes);
         println!("\tTree Height: {}", self.tree_height);
@@ -296,5 +314,28 @@ mod tests {
         let pair_set: std::collections::HashSet<(usize, usize)> = wpsd.all_pairs().collect();
         // should cover all unique pairs
         assert_eq!(pair_set.len(), 3); // C(3,2) = 3 pairs
+    }
+
+    #[test]
+    fn test_no_duplicate_pairs() {
+        // regression test: each point pair must be covered by exactly one
+        // well-separated pair, not two (a prior bug counted every cross-subtree
+        // pair twice, once per traversal order)
+        for n in [5, 10, 25, 50] {
+            let points: Vec<Point2D<f64>> = (0..n)
+                .map(|i| Point2D::new(i as f64, (i * 7 % 13) as f64))
+                .collect();
+            let wpsd = WSPD::new(points, 2.0);
+            let stats = wpsd.stats();
+
+            assert_eq!(
+                stats.total_point_pairs, stats.expected_pairs,
+                "n={n}: total_point_pairs should equal n choose 2, found duplicate or missing pairs"
+            );
+
+            // all_pairs() without deduplication should also match exactly,
+            // confirming no pair is emitted by more than one WellSeparatedPair
+            assert_eq!(wpsd.all_pairs().count(), stats.expected_pairs);
+        }
     }
 }
