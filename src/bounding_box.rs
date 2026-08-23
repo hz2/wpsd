@@ -170,7 +170,7 @@ pub fn are_well_separated<T: Scalar>(box1: &BoundingBox<T>, box2: &BoundingBox<T
     let c1 = box1.enclosing_center();
     let c2 = box2.enclosing_center();
 
-    // distance between centers
+    // squared distance between centers
     let center_dist_sq = c1
         .iter()
         .zip(&c2)
@@ -179,9 +179,78 @@ pub fn are_well_separated<T: Scalar>(box1: &BoundingBox<T>, box2: &BoundingBox<T
             diff * diff
         })
         .fold(T::zero(), |acc, x| acc + x);
-    let center_dist = center_dist_sq.sqrt();
 
-    // distance between ball surfaces
-    let surface_dist = center_dist - (r1 + r2);
-    surface_dist >= s * r
+    // the well-separation check is center_dist - (r1 + r2) >= s * r, i.e.
+    // center_dist >= s * r + r1 + r2. both sides are non-negative, so we can
+    // compare squares instead of taking sqrt(center_dist_sq).
+    let threshold = s * r + r1 + r2;
+    center_dist_sq >= threshold * threshold
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Reference implementation using sqrt directly, to check the
+    /// squared-comparison version in `are_well_separated` against it.
+    fn are_well_separated_reference<T: Scalar>(
+        box1: &BoundingBox<T>,
+        box2: &BoundingBox<T>,
+        s: T,
+    ) -> bool {
+        let r1 = box1.enclosing_radius();
+        let r2 = box2.enclosing_radius();
+        let r = r1.max(r2);
+
+        if r.is_zero() {
+            return true;
+        }
+
+        let c1 = box1.enclosing_center();
+        let c2 = box2.enclosing_center();
+        let center_dist_sq: T = c1
+            .iter()
+            .zip(&c2)
+            .map(|(a, b)| {
+                let diff = *a - *b;
+                diff * diff
+            })
+            .fold(T::zero(), |acc, x| acc + x);
+        let center_dist = center_dist_sq.sqrt();
+
+        (center_dist - (r1 + r2)) >= s * r
+    }
+
+    #[test]
+    fn test_are_well_separated_matches_sqrt_reference() {
+        let boxes = [
+            BoundingBox::new(vec![0.0, 0.0], vec![1.0, 1.0]),
+            BoundingBox::new(vec![2.0, 0.0], vec![3.0, 1.0]),
+            BoundingBox::new(vec![100.0, 100.0], vec![100.0, 100.0]),
+            BoundingBox::new(vec![-5.0, -5.0], vec![5.0, 5.0]),
+        ];
+        let separations = [0.5, 1.0, 2.0, 3.5, 10.0];
+
+        for a in &boxes {
+            for b in &boxes {
+                for &s in &separations {
+                    assert_eq!(
+                        are_well_separated(a, b, s),
+                        are_well_separated_reference(a, b, s),
+                        "mismatch for a={a:?} b={b:?} s={s}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_are_well_separated_known_cases() {
+        let close = BoundingBox::new(vec![0.0, 0.0], vec![1.0, 1.0]);
+        let far = BoundingBox::new(vec![100.0, 100.0], vec![101.0, 101.0]);
+        assert!(are_well_separated(&close, &far, 2.0));
+
+        let touching = BoundingBox::new(vec![1.0, 0.0], vec![2.0, 1.0]);
+        assert!(!are_well_separated(&close, &touching, 2.0));
+    }
 }
