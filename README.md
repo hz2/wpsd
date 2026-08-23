@@ -1,5 +1,10 @@
 # wpsd
 
+[![CI](https://github.com/hz2/wpsd/actions/workflows/ci.yml/badge.svg)](https://github.com/hz2/wpsd/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/wpsd.svg)](https://crates.io/crates/wpsd)
+[![docs.rs](https://img.shields.io/docsrs/wpsd)](https://docs.rs/wpsd)
+[![license](https://img.shields.io/crates/l/wpsd.svg)](LICENSE)
+
 A Rust library for Well-Separated Pair Decomposition (WSPD) using split trees for d-dimensional point sets.
 
 ## Features
