@@ -119,6 +119,8 @@ baseline. Run them with:
 cargo bench
 ```
 
+This generates an HTML report with charts at `target/criterion/report/index.html`.
+
 Representative results (uniform random 2D points, `s = 2.0`, measured on the author's machine —
 run the benchmarks yourself for numbers on your hardware):
 
