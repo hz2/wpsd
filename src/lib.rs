@@ -10,8 +10,8 @@
 //! **s-well separated** if they can be enclosed in balls of equal radius r such that
 //! the distance between the balls is at least s * r.
 //!
-//! The key insight is that for a point set of size n, we can represent all $\theta(n^2)$ pairs using
-//! only $O(s^d n)$ well-separated pairs, where d is the dimension and s is the separation factor.
+//! The key insight is that for a point set of size n, we can represent all `Θ(n²)` pairs using
+//! only `O(s^d · n)` well-separated pairs, where d is the dimension and s is the separation factor.
 
 mod bounding_box;
 mod point;
