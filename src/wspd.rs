@@ -38,7 +38,7 @@ impl<P: Point> WellSeparatedPair<P> {
 
     /// Returns the number of pairs represented by this well-separated pair.
     pub fn pair_count(&self) -> usize {
-        self.points_a().len() * self.points_b().len()
+        self.node_a.size() * self.node_b.size()
     }
 }
 

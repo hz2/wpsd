@@ -8,9 +8,9 @@ use std::sync::Arc;
 pub struct SplitTreeNode<P: Point> {
     /// Bounding box of all points in this subtree.
     pub bbox: BoundingBox<P::Scalar>,
-    /// Left child (points with coord[split_dim] <= split_value).
+    /// Left child (points with `coord(split_dim) <= split_value`).
     pub left: Option<Arc<SplitTreeNode<P>>>,
-    /// Right child (points with coord[split_dim] > split_value).
+    /// Right child (points with `coord(split_dim) > split_value`).
     pub right: Option<Arc<SplitTreeNode<P>>>,
     /// Indices of points stored in this leaf (empty for internal nodes).
     pub point_indices: Vec<usize>,
@@ -18,6 +18,8 @@ pub struct SplitTreeNode<P: Point> {
     pub representative: Option<usize>,
     /// Level in the tree (root = 0, leaves have high level).
     pub level: usize,
+    /// Number of points in this subtree, cached at construction time.
+    size: usize,
 }
 
 impl<P: Point> SplitTreeNode<P> {
@@ -28,13 +30,7 @@ impl<P: Point> SplitTreeNode<P> {
 
     /// Returns the number of points in this subtree.
     pub fn size(&self) -> usize {
-        if self.is_leaf() {
-            self.point_indices.len()
-        } else {
-            let left_size = self.left.as_ref().map_or(0, |l| l.size());
-            let right_size = self.right.as_ref().map_or(0, |r| r.size());
-            left_size + right_size
-        }
+        self.size
     }
 }
 
@@ -78,6 +74,7 @@ impl<P: Point> SplitTree<P> {
         // Base case: leaf node, 0 or 1 points
         if indices.len() <= 1 {
             let representative = indices.first().cloned();
+            let size = indices.len();
             return Arc::new(SplitTreeNode {
                 bbox,
                 left: None,
@@ -85,6 +82,7 @@ impl<P: Point> SplitTree<P> {
                 point_indices: indices,
                 representative,
                 level,
+                size,
             });
         }
 
@@ -162,6 +160,8 @@ impl<P: Point> SplitTree<P> {
             .as_ref()
             .and_then(|l| l.representative)
             .or_else(|| right_child.as_ref().and_then(|r| r.representative));
+        let size =
+            left_child.as_ref().map_or(0, |l| l.size) + right_child.as_ref().map_or(0, |r| r.size);
 
         Arc::new(SplitTreeNode {
             bbox,
@@ -170,6 +170,7 @@ impl<P: Point> SplitTree<P> {
             point_indices: Vec::new(),
             representative,
             level,
+            size,
         })
     }
 
