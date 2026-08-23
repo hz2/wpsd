@@ -91,7 +91,7 @@ impl<P: Point> SplitTree<P> {
         // find the longest dimension and split
         let split_dim = bbox.longest_dimension();
         let split_value =
-            (bbox.min[split_dim] + bbox.max[split_dim]) / P::Scalar::one() + P::Scalar::one();
+            (bbox.min[split_dim] + bbox.max[split_dim]) / (P::Scalar::one() + P::Scalar::one());
 
         // partition points
         let mut left_indices = Vec::new();
@@ -218,5 +218,34 @@ impl<P: Point> SplitTree<P> {
             }
             points
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::point::Point2D;
+
+    #[test]
+    fn test_tree_is_balanced_for_grid_points() {
+        // a roughly uniform point set should produce a tree with logarithmic
+        // height, not a degenerate linked list (regression test for the
+        // split_value midpoint calculation)
+        let n = 8;
+        let points: Vec<Point2D<f64>> = (0..n)
+            .flat_map(|x| (0..n).map(move |y| Point2D::new(x as f64, y as f64)))
+            .collect();
+        let count = points.len();
+
+        let tree = SplitTree::new(points);
+        let max_height = 2 * (count as f64).log2().ceil() as usize;
+
+        assert!(
+            tree.height() <= max_height,
+            "tree height {} exceeds expected bound {} for {} points; split tree may be degenerate",
+            tree.height(),
+            max_height,
+            count
+        );
     }
 }
